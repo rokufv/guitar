@@ -8,7 +8,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmb
 from langchain_core.prompts import ChatPromptTemplate
 from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_community.vectorstores import Chroma
+from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
 import chromadb
 from chromadb.config import Settings
@@ -34,35 +34,68 @@ def create_rag_prompt(guitarist: str) -> ChatPromptTemplate:
 
 def create_rag_chain(documents: list[Document], guitarist: str):
     """ドキュメントとギタリスト名からRAGチェーンを構築する"""
-    # ChromaDBクライアントの設定
-    client = chromadb.Client(Settings(
-        is_persistent=False,  # インメモリモードを使用
-        anonymized_telemetry=False
-    ))
-
+    
     # 1. LLMの初期化
     llm = ChatGoogleGenerativeAI(
-        model=CHAT_MODEL,
-        temperature=0.5,
-        safety_settings=SAFETY_SETTINGS,
+        model="gemini-pro",
         google_api_key=GOOGLE_API_KEY,
-        max_output_tokens=1024
+        convert_system_message_to_human=True,
+        temperature=0.7
     )
 
-    # 2. 埋め込みモデルの初期化
-    embeddings = GoogleGenerativeAIEmbeddings(model=EMBEDDING_MODEL, google_api_key=GOOGLE_API_KEY)
+    # 2. エンベッディングモデルの初期化
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model="models/embedding-001",
+        google_api_key=GOOGLE_API_KEY,
+    )
 
     # 3. ベクトルストアの作成
-    vectorstore = Chroma.from_documents(documents, embeddings)
+    vectorstore = FAISS.from_documents(
+        documents,
+        embeddings,
+    )
 
-    # 4. 検索器の作成
-    retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
+    # 4. 検索の実行
+    retriever = vectorstore.as_retriever(
+        search_type="similarity",
+        search_kwargs={"k": 3}
+    )
 
-    # 5. プロンプトの作成
-    prompt = create_rag_prompt(guitarist)
+    # 5. プロンプトテンプレートの作成
+    template = """あなたは{guitarist}の機材に詳しい楽器アドバイザーです。
+    以下の条件に基づいて、{guitarist}のサウンドに近づくための機材をレコメンドしてください：
 
-    # 6. チェーンの構築
-    document_chain = create_stuff_documents_chain(llm, prompt)
-    retrieval_chain = create_retrieval_chain(retriever, document_chain)
+    条件：
+    - 予算: {budget}円
+    - 機材レベル: {level}
+    - 探している機材タイプ: {type}
 
-    return retrieval_chain
+    以下の機材情報を参考にしてください：
+    {context}
+
+    レコメンドする際は以下の点に気をつけてください：
+    1. 予算内で購入可能な機材を優先的に提案する
+    2. ユーザーの機材レベルに合った機材を選ぶ
+    3. 指定された機材タイプの中から選ぶ（「すべて」の場合は制限なし）
+    4. {guitarist}のサウンドの特徴と、それを実現するための機材の役割を説明する
+    5. 可能であれば、予算や機材レベルに応じた代替案も提案する
+
+    回答は日本語でお願いします。
+    """
+
+    # 6. プロンプトの作成
+    prompt = ChatPromptTemplate.from_template(template)
+
+    # 7. RAGチェーンの作成
+    chain = (
+        {"context": retriever, 
+         "guitarist": lambda x: guitarist,
+         "budget": lambda x: x["budget"],
+         "level": lambda x: x["level"],
+         "type": lambda x: x["type"],
+         "input": lambda x: x["input"]}
+        | prompt
+        | llm
+    )
+
+    return chain

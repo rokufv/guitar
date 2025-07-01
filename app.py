@@ -1,12 +1,8 @@
-import sys
-import sqlite3
-print(f"Current SQLite version: {sqlite3.sqlite_version}")
-
 # app.py
 
 import streamlit as st
 from langchain_core.documents import Document
-import os  # osをインポート
+import os
 from st_audiorec import st_audiorec
 import datetime
 
