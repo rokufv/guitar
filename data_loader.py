@@ -237,28 +237,35 @@ def get_equipment_data(guitarist_name: str) -> list[Document]:
     # 機材データをDocumentオブジェクトに変換
     documents = []
     for equipment in equipment_list:
-        # 価格を日本円表記に変換
-        price = equipment.get('price', 0)  # 価格が存在しない場合は0を設定
-        price_str = f"¥{price:,}" if isinstance(price, (int, float)) and price > 0 else "非売品"
-        
-        # 機材情報を文字列に変換
-        content = f"機材名: {equipment.get('name', '')}\n"
-        content += f"タイプ: {equipment.get('type', '')}\n"
-        content += f"価格: {price_str}\n"
-        content += f"レベル: {equipment.get('level', '')}\n"
-        content += f"特徴: {equipment.get('characteristics', '')}"
-        
-        # Documentオブジェクトを作成
-        doc = Document(
-            page_content=content,
-            metadata={
-                "name": equipment.get('name', ''),
-                "type": equipment.get('type', ''),
-                "price": price,
-                "level": equipment.get('level', '')
-            }
-        )
-        documents.append(doc)
+        try:
+            # 価格を日本円表記に変換
+            price = equipment.get('price', 0)  # 価格が存在しない場合は0を設定
+            price_str = f"¥{price:,}" if isinstance(price, (int, float)) and price > 0 else "非売品"
+            
+            # 機材情報を文字列に変換
+            content = (
+                f"機材名: {equipment.get('name', '')}\n"
+                f"タイプ: {equipment.get('type', '')}\n"
+                f"価格: {price_str}\n"
+                f"レベル: {equipment.get('level', '')}\n"
+                f"特徴: {equipment.get('characteristics', '')}"
+            )
+            
+            # Documentオブジェクトを作成
+            doc = Document(
+                page_content=content,
+                metadata={
+                    "name": equipment.get('name', ''),
+                    "type": equipment.get('type', ''),
+                    "price": price,
+                    "level": equipment.get('level', ''),
+                    "guitarist": guitarist_name
+                }
+            )
+            documents.append(doc)
+        except Exception as e:
+            print(f"機材データの変換中にエラーが発生しました: {e}")
+            continue
     
     return documents
 

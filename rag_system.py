@@ -21,6 +21,14 @@ def create_rag_prompt(guitarist: str) -> ChatPromptTemplate:
     提案する機材は、提供された情報（context）の中から、{guitarist}のサウンドに最も近い特徴を持つものを選び、
     その機材がなぜ{guitarist}のサウンドに近づくのか、具体的な理由とセッティングのヒントも加えて、分かりやすく解説してください。
     予算を少し超えるが、より効果的な選択肢があれば、それも提示してください。
+
+    機材情報は以下のような形式で提供されます：
+    機材名: [機材の名前]
+    タイプ: [機材のタイプ]
+    価格: [価格]
+    レベル: [機材の難易度]
+    特徴: [機材の特徴]
+
     以下の情報を参考にして提案してください:
     {{context}}
     """
@@ -90,8 +98,7 @@ def create_rag_chain(documents: list[Document], guitarist: str):
          "guitarist": lambda x: guitarist,
          "budget": lambda x: int(str(x["budget"]).replace(",", "")),  # 数値に変換
          "level": lambda x: x["level"],
-         "type": lambda x: x["type"],
-         "input": lambda x: x["input"]}
+         "type": lambda x: x["type"]}
         | prompt
         | llm
     )
