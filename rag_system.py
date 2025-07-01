@@ -47,7 +47,7 @@ def create_rag_chain(documents: list[Document], guitarist: str):
     
     # 1. LLMの初期化
     llm = ChatGoogleGenerativeAI(
-        model="gemini-pro",
+        model="gemini-2.5-flash",
         google_api_key=GOOGLE_API_KEY,
         convert_system_message_to_human=True,
         temperature=0.7
