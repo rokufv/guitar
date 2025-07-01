@@ -2,6 +2,7 @@
 
 from config import GOOGLE_API_KEY
 from equipment_data import EQUIPMENT_DATA  # 新しいデータソースをインポート
+from langchain_core.documents import Document
 
 DUMMY_EQUIPMENT_DATA = {
     "B'z 松本孝弘": [
@@ -229,9 +230,36 @@ DUMMY_EQUIPMENT_DATA = {
     ]
 }
 
-def get_equipment_data(guitarist_name: str) -> list:
-    """指定されたギタリストの機材データを返す"""
-    return EQUIPMENT_DATA.get(guitarist_name, [])
+def get_equipment_data(guitarist_name: str) -> list[Document]:
+    """指定されたギタリストの機材データを取得する"""
+    equipment_list = EQUIPMENT_DATA.get(guitarist_name, [])
+    
+    # 機材データをDocumentオブジェクトに変換
+    documents = []
+    for equipment in equipment_list:
+        # 価格を日本円表記に変換
+        price_str = f"¥{equipment['price']:,}" if equipment['price'] > 0 else "非売品"
+        
+        # 機材情報を文字列に変換
+        content = f"機材名: {equipment['name']}\n"
+        content += f"タイプ: {equipment['type']}\n"
+        content += f"価格: {price_str}\n"
+        content += f"レベル: {equipment['level']}\n"
+        content += f"特徴: {equipment['characteristics']}"
+        
+        # Documentオブジェクトを作成
+        doc = Document(
+            page_content=content,
+            metadata={
+                "name": equipment['name'],
+                "type": equipment['type'],
+                "price": equipment['price'],
+                "level": equipment['level']
+            }
+        )
+        documents.append(doc)
+    
+    return documents
 
 def get_practice_phrase(guitarist_name):
     """従来の練習フレーズデータ（後方互換性のため残す）"""
