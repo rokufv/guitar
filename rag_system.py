@@ -10,7 +10,6 @@ from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
-from langchain_core.runnables import RunnablePassthrough
 
 # 設定情報をconfig.pyからインポート
 from config import GOOGLE_API_KEY, EMBEDDING_MODEL, CHAT_MODEL, SAFETY_SETTINGS
@@ -48,7 +47,7 @@ def create_rag_chain(documents: list[Document], guitarist: str):
     
     # 1. LLMの初期化
     llm = ChatGoogleGenerativeAI(
-        model="gemini-pro",
+        model="gemini-1.0-pro",
         google_api_key=GOOGLE_API_KEY,
         convert_system_message_to_human=True,
         temperature=0.7
@@ -99,25 +98,8 @@ def create_rag_chain(documents: list[Document], guitarist: str):
 
     # 6. プロンプトの作成
     prompt = ChatPromptTemplate.from_template(template)
-
-    # 7. RAGチェーンの作成
-    def format_docs(docs):
-        return "\n\n".join(doc.page_content for doc in docs)
-
-    rag_chain = (
-        {
-            "context": retriever | format_docs,
-            "input": RunnablePassthrough(),
-            "guitarist": lambda x: guitarist,
-            "budget": lambda x: x["budget"],
-            "level": lambda x: x["level"],
-            "type": lambda x: x["type"],
-        }
-        | prompt
-        | llm
-    )
     
-    # create_retrieval_chainの構造を模倣し、コンテキストも返すように変更
+    # 7. RAGチェーンの作成
     question_answer_chain = create_stuff_documents_chain(llm, prompt)
     chain = create_retrieval_chain(retriever, question_answer_chain)
 
