@@ -10,6 +10,7 @@ from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
+from langchain_core.runnables import RunnablePassthrough
 
 # 設定情報をconfig.pyからインポート
 from config import GOOGLE_API_KEY, EMBEDDING_MODEL, CHAT_MODEL, SAFETY_SETTINGS
@@ -73,15 +74,18 @@ def create_rag_chain(documents: list[Document], guitarist: str):
 
     # 5. プロンプトテンプレートの作成
     template = """あなたは{guitarist}の機材に詳しい楽器アドバイザーです。
-    以下の条件に基づいて、{guitarist}のサウンドに近づくための機材をレコメンドしてください：
+    以下の条件とユーザーからの質問に基づいて、{guitarist}のサウンドに近づくための機材をレコメンドしてください。
 
     条件：
     - 予算: {budget}円
     - 機材レベル: {level}
     - 探している機材タイプ: {type}
 
-    以下の機材情報を参考にしてください：
+    以下の機材情報（コンテキスト）を参考にしてください：
     {context}
+
+    ユーザーからの質問:
+    {input}
 
     レコメンドする際は以下の点に気をつけてください：
     1. 予算内（{budget}円以下）で購入可能な機材を優先的に提案する
@@ -90,34 +94,31 @@ def create_rag_chain(documents: list[Document], guitarist: str):
     4. {guitarist}のサウンドの特徴と、それを実現するための機材の役割を説明する
     5. 可能であれば、予算や機材レベルに応じた代替案も提案する
 
-    回答は日本語でお願いします。
+    回答は日本語で、フレンドリーな口調でお願いします。
     """
 
     # 6. プロンプトの作成
     prompt = ChatPromptTemplate.from_template(template)
 
-    # 7. ドキュメント結合チェーンの作成
-    document_chain = create_stuff_documents_chain(llm, prompt)
+    # 7. RAGチェーンの作成
+    def format_docs(docs):
+        return "\n\n".join(doc.page_content for doc in docs)
 
-    # 8. 検索チェーンの作成
-    retrieval_chain = create_retrieval_chain(retriever, document_chain)
+    rag_chain = (
+        {
+            "context": retriever | format_docs,
+            "input": RunnablePassthrough(),
+            "guitarist": lambda x: guitarist,
+            "budget": lambda x: x["budget"],
+            "level": lambda x: x["level"],
+            "type": lambda x: x["type"],
+        }
+        | prompt
+        | llm
+    )
+    
+    # create_retrieval_chainの構造を模倣し、コンテキストも返すように変更
+    question_answer_chain = create_stuff_documents_chain(llm, prompt)
+    chain = create_retrieval_chain(retriever, question_answer_chain)
 
-    async def run_chain(input_data):
-        """チェーンを実行する非同期関数"""
-        try:
-            # 入力データの準備
-            chain_input = {
-                "guitarist": guitarist,
-                "budget": int(str(input_data["budget"]).replace(",", "")),
-                "level": input_data["level"],
-                "type": input_data["type"]
-            }
-            
-            # チェーンの実行
-            response = await retrieval_chain.ainvoke(chain_input)
-            return response["answer"]
-        except Exception as e:
-            print(f"チェーンの実行中にエラーが発生しました: {e}")
-            return f"エラーが発生しました: {str(e)}"
-
-    return run_chain
+    return chain
