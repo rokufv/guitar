@@ -10,8 +10,6 @@ from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
-import chromadb
-from chromadb.config import Settings
 
 # 設定情報をconfig.pyからインポート
 from config import GOOGLE_API_KEY, EMBEDDING_MODEL, CHAT_MODEL, SAFETY_SETTINGS
