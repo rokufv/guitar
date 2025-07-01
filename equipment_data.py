@@ -1,206 +1,138 @@
 # equipment_data.py
 
 EQUIPMENT_DATA = {
-    "B'z 松本孝弘": [
-        # --- ギター ---
+    "TAK": [
         {
-            "name": "Gibson Tak Matsumoto Les Paul / Les Paul Standard", "type": "ギター", "price": "¥300,000 〜 ¥1,000,000以上", "level": "上級",
-            "characteristics": "松本サウンドの核となる、甘く太いハムバッカーサウンドが特徴。",
-            "image_url": "https://www.ishibashi.co.jp/ec/pic/product/2800003207516/2800003207516_1_l.jpg"
+            "name": "Gibson Les Paul Tak Matsumoto Signature",
+            "type": "ギター",
+            "price": "450,000円",
+            "level": "上級",
+            "characteristics": "太く粘りのあるサウンドと高いサステイン。松本孝弘のメインギター。",
+            "image_url": "https://images-na.ssl-images-amazon.com/images/I/71c3%2B-u-kGL._AC_SL1500_.jpg"
         },
         {
-            "name": "Epiphone Les Paul Standard / Custom", "type": "ギター", "price": "¥70,000 〜 ¥120,000", "level": "中級",
-            "characteristics": "Gibsonの公式傘下ブランド。見た目もサウンドも本家の特徴をよく捉えており、コストパフォーマンスが非常に高い。", "image_url": None
+            "name": "Gibson Tak Matsumoto Double Cutaway",
+            "type": "ギター",
+            "price": "380,000円",
+            "level": "中級",
+            "characteristics": "軽量で扱いやすく、クリアなトーンが特徴。",
+            "image_url": "https://images-na.ssl-images-amazon.com/images/I/61y2g7c6Y%2BL._AC_SL1500_.jpg"
         },
         {
-            "name": "Epiphone Les Paul Studio / Special", "type": "ギター", "price": "¥40,000 〜 ¥60,000", "level": "初級",
-            "characteristics": "装飾をシンプルにして価格を抑えたモデル。レスポールらしいサウンドは健在で、最初の1本として十分なクオリティ。", "image_url": None
+            "name": "Fender Stratocaster",
+            "type": "ギター",
+            "price": "150,000円",
+            "level": "中級",
+            "characteristics": "多彩なサウンドバリエーション。クリーンから歪みまで幅広く対応。",
+            "image_url": "https://images-na.ssl-images-amazon.com/images/I/61j-pZ-8MHL._AC_SL1500_.jpg"
         },
         {
-            "name": "YAMAHA MG-M / Music Man EVH", "type": "ギター", "price": "¥250,000以上（ヴィンテージ市場）", "level": "上級",
-            "characteristics": "B'z初期のサウンドを支えた、テクニカルなプレイに対応しやすいギター。", 
-            "image_url": "https://blog-imgs-38-origin.fc2.com/m/u/s/musicoffice/mgm-custom.jpg" 
+            "name": "Marshall JCM2000",
+            "type": "アンプ",
+            "price": "180,000円",
+            "level": "上級",
+            "characteristics": "ロックに最適なパワフルな歪み。松本サウンドの核。",
+            "image_url": "https://images-na.ssl-images-amazon.com/images/I/71n0j-vJdZL._AC_SL1500_.jpg"
         },
         {
-            "name": "Ibanez RG Standardシリーズ / YAMAHA Pacifica 600シリーズ", "type": "ギター", "price": "¥80,000 〜 ¥150,000", "level": "中級",
-            "characteristics": "薄いネックで弾きやすく、ロック式トレモロや多彩なピックアップ構成を持つモデルが多い。速弾きやアーム奏法に最適。", "image_url": None
+            "name": "BOSS SD-1",
+            "type": "エフェクター",
+            "price": "6,000円",
+            "level": "初級",
+            "characteristics": "滑らかなオーバードライブ。ソロ時のブーストにも最適。",
+            "image_url": "https://images-na.ssl-images-amazon.com/images/I/71g-9Z8v4bL._AC_SL1500_.jpg"
         },
         {
-            "name": "Ibanez GIOシリーズ / YAMAHA Pacifica 100・200シリーズ", "type": "ギター", "price": "¥30,000 〜 ¥50,000", "level": "初級",
-            "characteristics": "世界的に評価の高い入門用ギターの定番。弾きやすさ、サウンドのバランスが良く、幅広いジャンルに対応できる。", "image_url": None
-        },
-        # --- アンプ ---
-        {
-            "name": "FAT / Bogner / PEAVEY 5150", "type": "アンプ", "price": "¥300,000以上（ヘッドアンプ）", "level": "上級",
-            "characteristics": "ロックに必須の、パワフルで深く歪むサウンドを作る心臓部。",
-            "image_url": "https://img.digimart.net/prdimg/m/5a/c5ae5b32d6156045029c4244957ea299cd7849.jpg" # Marshall JCM800の画像で代用
-        },
-        {
-            "name": "BOSS KATANA-100 / Artist", "type": "アンプ", "price": "¥50,000 〜 ¥80,000", "level": "中級",
-            "characteristics": "プロも使う多機能なモデリングアンプ。これ1台でクリーンから激しい歪みまで作れ、自宅練習からライブまで対応可能。", "image_url": None
-        },
-        {
-            "name": "BOSS KATANA-50 / YAMAHA THR10II", "type": "アンプ", "price": "¥25,000 〜 ¥50,000", "level": "初級",
-            "characteristics": "現代の入門アンプの決定版。小型で音質も良く、エフェクトも内蔵。USBでの録音にも対応。", "image_url": None
-        },
-        # --- エフェクター ---
-        {
-            "name": "Jim Dunlop TM95 (TAK CRY BABY)", "type": "エフェクター (ワウ)", "price": "¥30,000前後", "level": "上級",
-            "characteristics": "感情的なサウンド表現に欠かせないシグネチャーモデルのワウペダル。",
-            "image_url": "https://www.jimdunlop.com/content/images/products/originals/gcb95_17361138801_1.png"
-        },
-        {
-            "name": "Jim Dunlop GCB95 (Original Cry Baby)", "type": "エフェクター (ワウ)", "price": "¥15,000前後", "level": "中級",
-            "characteristics": "ワウペダルの世界標準。プロからアマまで最も多くのギタリストが使用している。", "image_url": None
-        },
-        {
-            "name": "VOX V845", "type": "エフェクター (ワウ)", "price": "¥8,000前後", "level": "初級",
-            "characteristics": "定番クライベイビーより少しマイルドな効きだが、基本性能は十分な入門モデル。", "image_url": None
-        },
-        {
-            "name": "FAT 514.D", "type": "エフェクター (歪み)", "price": "カスタム品", "level": "上級",
-            "characteristics": "アンプだけでは作れない、もう一段階上の歪みや音のハリを加えるカスタムペダル。", "image_url": None
-        },
-        {
-            "name": "BOSS BD-2 (Blues Driver) / SD-1 (Super OverDrive)", "type": "エフェクター (歪み)", "price": "¥9,000 〜 ¥12,000", "level": "中級",
-            "characteristics": "どちらも歴史的な名機。松本氏も過去に使用しており、特にBD-2は幅広いゲインに対応できる万能選手。", "image_url": None
-        },
-        {
-            "name": "Ibanez TS MINI (Tube Screamer Mini)", "type": "エフェクター (歪み)", "price": "¥8,000前後", "level": "初級",
-            "characteristics": "伝説的なTS9のサウンドを小型・低価格で実現。ブースターとして使うのが定番。", "image_url": None
-        },
-        {
-            "name": "BOSS DD-500", "type": "エフェクター (ディレイ)", "price": "¥40,000前後", "level": "上級",
-            "characteristics": "音をやまびこのように響かせ、ソロに広がりと立体感を与える高機能デジタルディレイ。", "image_url": None
-        },
-        {
-            "name": "BOSS DD-8 / DD-3T", "type": "エフェクター (ディレイ)", "price": "¥20,000前後", "level": "中級",
-            "characteristics": "コンパクトペダルのディレイの決定版。シンプルながらプロの現場でも通用する高音質。", "image_url": None
-        },
-        {
-            "name": "Donner Yellow Fall / Mooer Reecho", "type": "エフェクター (ディレイ)", "price": "¥5,000 〜 ¥8,000", "level": "初級",
-            "characteristics": "低価格ながら基本的なディレイサウンドはしっかり出せるモデル。最初のディレイとして人気。", "image_url": None
-        },
-        {
-            "name": "DigiTech Whammy 5", "type": "エフェクター (ピッチシフター)", "price": "¥35,000前後", "level": "上級",
-            "characteristics": "ペダル操作で音程を急上昇・急降下させる、彼の代名詞とも言えるエフェクト。", "image_url": None
-        },
-        {
-            "name": "DigiTech Whammy Ricochet", "type": "エフェクター (ピッチシフター)", "price": "¥25,000前後", "level": "中級",
-            "characteristics": "ペダル無しのコンパクト版。スイッチ操作でワーミーサウンドを再現でき、場所を取らない。", "image_url": None
-        },
-        {
-            "name": "Zoom G1 Four (内蔵機能)", "type": "エフェクター (ピッチシフター)", "price": "¥10,000前後", "level": "初級",
-            "characteristics": "多機能マルチエフェクターに内蔵されているピッチベンド機能で代用。他のエフェクトも試せるため入門者に最適。", "image_url": None
-        },
+            "name": "Jim Dunlop Tortex 0.88mm",
+            "type": "ピック",
+            "price": "150円",
+            "level": "初級",
+            "characteristics": "適度な硬さでコントロールしやすい。",
+            "image_url": "https://images-na.ssl-images-amazon.com/images/I/71Y-F7x-L2L._AC_SL1500_.jpg"
+        }
     ],
-    "布袋寅泰": [
-        # --- ギター ---
+    "HOTEI": [
         {
-            "name": "Zemaitis / Zodiacworks TC-HOTEI", "type": "ギター", "price": "¥500,000以上（カスタム品）", "level": "上級",
-            "characteristics": "布袋サウンドの象徴。鋭いカッティングと幾何学模様のG柄が最大の特徴。",
-            "image_url": "https://i.ebayimg.com/images/g/w~MAAOSwqOtkxARw/s-l1600.jpg"
+            "name": "Zemaitis HOTEI Custom",
+            "type": "ギター",
+            "price": "500,000円",
+            "level": "上級",
+            "characteristics": "アイコニックな幾何学模様。シャープでエッジの効いたサウンド。",
+            "image_url": "https://www.zemaitis-guitars.jp/artists/images/hotei.jpg"
         },
         {
-            "name": "Fender Made in Japan Telecaster / TE-HT (FERNANDES)", "type": "ギター", "price": "¥80,000 〜 ¥150,000", "level": "中級",
-            "characteristics": "TE-HTは最も手に入れやすい布袋モデルのレプリカ。Fender Japan製のテレキャスターもシャープなサウンドでカッティングに適している。", "image_url": None
+            "name": "Fender Telecaster HOTEIモデル",
+            "type": "ギター",
+            "price": "220,000円",
+            "level": "中級",
+            "characteristics": "鋭いカッティングと独特のルックスが特徴。",
+            "image_url": "https://images-na.ssl-images-amazon.com/images/I/61J2c7yA4HL._AC_SL1500_.jpg"
         },
         {
-            "name": "Squier by Fender Classic Vibe / Affinity Telecaster", "type": "ギター", "price": "¥35,000 〜 ¥60,000", "level": "初級",
-            "characteristics": "Fender直系ブランドならではの、テレキャスターらしいサウンドと弾き心地を手頃な価格で実現。", "image_url": None
-        },
-        # --- アンプ ---
-        {
-            "name": "Roland JC-120 / Pete Cornish Custom Amp", "type": "アンプ", "price": "¥150,000以上", "level": "上級",
-            "characteristics": "彼のサウンドの基本となる、クリーンでありながらも芯のあるサウンド。特にJC-120のコーラスは象徴的。",
-            "image_url": "https://static.roland.com/products/jc-120/features/images/jc-120_features_01.jpg"
+            "name": "Roland JC-120",
+            "type": "アンプ",
+            "price": "120,000円",
+            "level": "中級",
+            "characteristics": "クリーンで立体的なコーラスサウンド。布袋サウンドの基本。",
+            "image_url": "https://images-na.ssl-images-amazon.com/images/I/81v-3n4n4NL._AC_SL1500_.jpg"
         },
         {
-            "name": "Roland JC-40 / JC-22", "type": "アンプ", "price": "¥50,000 〜 ¥80,000", "level": "中級",
-            "characteristics": "伝説的なJC-120のサウンドを、より小型で自宅でも使いやすいサイズにしたモデル。美しいクリーンとコーラスは健在。", "image_url": None
+            "name": "BOSS GT-1000",
+            "type": "エフェクター",
+            "price": "100,000円",
+            "level": "上級",
+            "characteristics": "多彩なエフェクトを網羅するマルチエフェクター。彼のサウンドシステムの中心。",
+            "image_url": "https://images-na.ssl-images-amazon.com/images/I/71q5n4k4pNL._AC_SL1500_.jpg"
         },
         {
-            "name": "BOSS KATANA-50 / YAMAHA THR10II", "type": "アンプ", "price": "¥25,000 〜 ¥50,000", "level": "初級",
-            "characteristics": "モデリングアンプの「JC-120」モードや「Clean」モードを使うことで、煌びやかなクリーントーンを再現可能。", "image_url": None
-        },
-        # --- エフェクター ---
-        {
-            "name": "KORG SDD-3000", "type": "エフェクター (空間系)", "price": "¥40,000以上", "level": "上級",
-            "characteristics": "彼のサウンドの核。クリアで特徴的なディレイサウンド。",
-            "image_url": "https://www.korg.com/us/products/effects/sdd3000_pedal/images/img_main.png"
-        },
-        {
-            "name": "Pete Cornish / Providence SONIC DRIVE", "type": "エフェクター (歪み)", "price": "カスタム品 / ¥30,000以上", "level": "上級",
-            "characteristics": "クリーンなアンプを基本に、曲に合わせて多彩な歪みを加える。", "image_url": None
-        },
-        {
-            "name": "Proco RAT 2 / Xotic BB Preamp", "type": "エフェクター (歪み)", "price": "¥15,000 〜 ¥25,000", "level": "中級",
-            "characteristics": "RATはエッジの効いたディストーションの定番。BB Preampはアンプライクで自然な歪みを作れる。", "image_url": None
-        },
-        {
-            "name": "BOSS DS-1 (Distortion)", "type": "エフェクター (歪み)", "price": "¥8,000前後", "level": "初級",
-            "characteristics": "多くのレジェンドが使用してきたディストーションの金字塔。シャープで攻撃的なサウンドが得られる。", "image_url": None
-        },
-        {
-            "name": "Free The Tone FT-1Y / BOSS RV-500", "type": "エフェクター (空間系)", "price": "¥40,000以上", "level": "上級",
-            "characteristics": "サウンドに広がりと浮遊感を与えるプロ仕様の高品質な空間系エフェクト。", "image_url": None
-        },
-        {
-            "name": "BOSS GT-1 / Line 6 M5 Stompbox Modeler", "type": "エフェクター (空間系マルチ)", "price": "¥20,000 〜 ¥30,000", "level": "中級",
-            "characteristics": "コンパクトなマルチエフェクター。ディレイ、リバーブ、コーラスなど、必要な空間系エフェクトが一台にまとまっている。", "image_url": None
-        },
-        {
-            "name": "ZOOM G1 Four / MS-50G", "type": "エフェクター (空間系マルチ)", "price": "¥10,000前後", "level": "初級",
-            "characteristics": "非常にコストパフォーマンスの高いマルチエフェクター。様々なエフェクトを試しながら、自分の好きな音を探すのに最適。", "image_url": None
-        },
+            "name": "HOTEI オリジナルピック",
+            "type": "ピック",
+            "price": "200円",
+            "level": "初級",
+            "characteristics": "G柄がプリントされたティアドロップ型のピック。",
+            "image_url": "https://images-na.ssl-images-amazon.com/images/I/51w6Z8Z-YJL._AC_SL1000_.jpg"
+        }
     ],
-    "結束バンド 後藤ひとり": [
-        # --- ギター ---
+    "GOTOH": [
         {
-            "name": "Gibson Les Paul Custom", "type": "ギター", "price": "¥500,000以上", "level": "上級",
-            "characteristics": "\"ギターヒーロー\"としての活動初期を支えた、パワフルでロックなサウンドが特徴のギター。",
-            "image_url": "https://static.gibson.com/product-images/Custom/CUSZJG839/Ebony/front-5k.png"
-        },
-        {
-            "name": "Epiphone Les Paul Custom", "type": "ギター", "price": "¥70,000 〜 ¥100,000", "level": "中級",
-            "characteristics": "Gibsonの公式傘下ブランド。ルックス、サウンド共に本家の特徴を忠実に再現しており、多くのギタリストに愛されている。", "image_url": None
+            "name": "Gibson Les Paul Custom",
+            "type": "ギター",
+            "price": "350,000円",
+            "level": "中級",
+            "characteristics": "「ぼっち・ざ・ろっく！」でおなじみのモデル。パワフルで豊かなサウンド。",
+            "image_url": "https://www.gibson.com/ja-JP/Guitar/USAYM9327/Les-Paul-Custom/Ebony"
         },
         {
-            "name": "Epiphone Les Paul Standard", "type": "ギター", "price": "¥50,000 〜 ¥70,000", "level": "初級",
-            "characteristics": "カスタムモデルから装飾をシンプルにすることで、より手頃な価格を実現したモデル。レスポールらしいサウンドは健在。", "image_url": None
+            "name": "YAMAHA PACIFICA 612V II FM",
+            "type": "ギター",
+            "price": "80,000円",
+            "level": "中級",
+            "characteristics": "アニメで使用されたもう一本のギター。多彩な音作りが可能。",
+            "image_url": "https://images-na.ssl-images-amazon.com/images/I/61N-gH-5BFL._AC_SL1500_.jpg"
         },
         {
-            "name": "YAMAHA PACIFICA 611VFM (ぼっちちゃんカスタム)", "type": "ギター", "price": "非売品（ベースモデルは¥70,000前後）", "level": "上級",
-            "characteristics": "ライブでのトラブルをきっかけに手に入れた、多彩な音作りと高い演奏性が魅力のギター。",
-            "image_url": "https://uk.yamaha.com/en/files/pacifica-611-flamed-maple-top_1200x480_a745c11739c9f80a4a81ca5a8a1de7a9.jpg"
+            "name": "YAMAHA THR5",
+            "type": "アンプ",
+            "price": "20,000円",
+            "level": "初級",
+            "characteristics": "自宅練習に最適なデスクトップアンプ。様々なアンプモデルとエフェクトを内蔵。",
+            "image_url": "https://images-na.ssl-images-amazon.com/images/I/71z7Z-5z-pL._AC_SL1500_.jpg"
         },
         {
-            "name": "YAMAHA PACIFICA 612VIIFM / 311H", "type": "ギター", "price": "¥50,000 〜 ¥80,000", "level": "中級",
-            "characteristics": "高品質なパーツを搭載し、コイルタップ機能などで多彩なサウンドメイクが可能。ジャンルを問わず活躍できる一本。", "image_url": None
+            "name": "BOSS BD-2 Blues Driver",
+            "type": "エフェクター",
+            "price": "10,000円",
+            "level": "初級",
+            "characteristics": "ぼっちちゃんが愛用するオーバードライブ。ピッキングのニュアンスを出しやすい。",
+            "image_url": "https://images-na.ssl-images-amazon.com/images/I/71c-4bX-HFL._AC_SL1500_.jpg"
         },
         {
-            "name": "YAMAHA PACIFICA 112V / 212VFM", "type": "ギター", "price": "¥35,000 〜 ¥50,000", "level": "初級",
-            "characteristics": "正確な音程、高い演奏性、多彩な音色を兼ね備えた、初心者向けモデルの決定版として高い評価を得ている。", "image_url": None
-        },
-        # --- アンプ ---
-        {
-            "name": "YAMAHA THRシリーズ (THR5, THR10IIなど)", "type": "アンプ", "price": "¥25,000 〜 ¥50,000", "level": "上級/中級/初級 共通",
-            "characteristics": "デスクトップアンプという新しいカテゴリを確立した人気シリーズ。様々なアンプモデルとエフェクトを内蔵し、これ一台でプロクオリティのサウンドを小音量で楽しめる。",
-            "image_url": "https://usa.yamaha.com/products/musical_instruments/guitars_basses/amps_accessories/thr/classic-gallery/500x500/thr5_600_001.jpg"
-        },
-        # --- エフェクター ---
-        {
-            "name": "BOSS BD-2 (Blues Driver)", "type": "エフェクター (歪み)", "price": "¥12,000前後", "level": "中級",
-            "characteristics": "ピッキングのニュアンスを忠実に再現する、クランチからオーバードライブまでカバーする定番ペダル。",
-            "image_url": "https://static.roland.com/products/bd-2/features/images/bd-2_features_1_mb.jpg"
-        },
-         {
-            "name": "ProCo RAT2", "type": "エフェクター (歪み)", "price": "¥15,000前後", "level": "上級",
-            "characteristics": "ぼっちちゃんの感情豊かなギターソロを表現するのに欠かせない、定番の歪みエフェクターの組み合わせ。", "image_url": None
-        },
-        {
-            "name": "JOYO JF-02 (Ultimate Drive) / BEHRINGER OD300", "type": "エフェクター (歪み)", "price": "¥4,000 〜 ¥7,000", "level": "初級",
-            "characteristics": "手頃な価格ながら、本格的なオーバードライブサウンドが得られるペダル。初めての歪みエフェクターとしておすすめ。", "image_url": None
-        },
+            "name": "結束バンド オリジナルピック",
+            "type": "ピック",
+            "price": "150円",
+            "level": "初級",
+            "characteristics": "おにぎり型のピック。結束バンドのロゴ入り。",
+            "image_url": "https://images-na.ssl-images-amazon.com/images/I/61Z-N8Z2-gL._AC_SL1500_.jpg"
+        }
     ]
 } 
