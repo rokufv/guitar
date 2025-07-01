@@ -89,6 +89,7 @@ def run_recommendation(guitarist, level, budget, type):
             st.markdown("### レコメンド結果")
             
             input_data = {
+                "guitarist": guitarist,
                 "level": level,
                 "budget": budget,
                 "type": type,
