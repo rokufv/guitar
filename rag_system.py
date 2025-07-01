@@ -72,9 +72,9 @@ def create_rag_chain(documents: list[Document], guitarist: str):
     {context}
 
     レコメンドする際は以下の点に気をつけてください：
-    1. 予算内で購入可能な機材を優先的に提案する
-    2. ユーザーの機材レベルに合った機材を選ぶ
-    3. 指定された機材タイプの中から選ぶ（「すべて」の場合は制限なし）
+    1. 予算内（{budget}円以下）で購入可能な機材を優先的に提案する
+    2. ユーザーの機材レベル（{level}）に合った機材を選ぶ
+    3. 指定された機材タイプ（{type}）の中から選ぶ（「すべて」の場合は制限なし）
     4. {guitarist}のサウンドの特徴と、それを実現するための機材の役割を説明する
     5. 可能であれば、予算や機材レベルに応じた代替案も提案する
 
@@ -88,7 +88,7 @@ def create_rag_chain(documents: list[Document], guitarist: str):
     chain = (
         {"context": retriever, 
          "guitarist": lambda x: guitarist,
-         "budget": lambda x: x["budget"],
+         "budget": lambda x: int(str(x["budget"]).replace(",", "")),  # 数値に変換
          "level": lambda x: x["level"],
          "type": lambda x: x["type"],
          "input": lambda x: x["input"]}

@@ -238,23 +238,24 @@ def get_equipment_data(guitarist_name: str) -> list[Document]:
     documents = []
     for equipment in equipment_list:
         # 価格を日本円表記に変換
-        price_str = f"¥{equipment['price']:,}" if equipment['price'] > 0 else "非売品"
+        price = equipment.get('price', 0)  # 価格が存在しない場合は0を設定
+        price_str = f"¥{price:,}" if isinstance(price, (int, float)) and price > 0 else "非売品"
         
         # 機材情報を文字列に変換
-        content = f"機材名: {equipment['name']}\n"
-        content += f"タイプ: {equipment['type']}\n"
+        content = f"機材名: {equipment.get('name', '')}\n"
+        content += f"タイプ: {equipment.get('type', '')}\n"
         content += f"価格: {price_str}\n"
-        content += f"レベル: {equipment['level']}\n"
-        content += f"特徴: {equipment['characteristics']}"
+        content += f"レベル: {equipment.get('level', '')}\n"
+        content += f"特徴: {equipment.get('characteristics', '')}"
         
         # Documentオブジェクトを作成
         doc = Document(
             page_content=content,
             metadata={
-                "name": equipment['name'],
-                "type": equipment['type'],
-                "price": equipment['price'],
-                "level": equipment['level']
+                "name": equipment.get('name', ''),
+                "type": equipment.get('type', ''),
+                "price": price,
+                "level": equipment.get('level', '')
             }
         )
         documents.append(doc)
