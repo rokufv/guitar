@@ -5,6 +5,8 @@ from langchain_core.documents import Document
 import os
 from st_audiorec import st_audiorec
 import datetime
+from flask import Flask, request, jsonify
+import asyncio
 
 # 自作モジュールをインポート
 from config import GOOGLE_API_KEY
@@ -13,6 +15,53 @@ from data_loader import (
     get_practice_phrase
 )
 from rag_system import create_rag_chain
+
+app = Flask(__name__)
+
+@app.route('/recommend', methods=['POST'])
+async def recommend_equipment():
+    try:
+        data = request.get_json()
+        
+        # 必要なパラメータの取得
+        guitarist = data.get('guitarist')
+        budget = data.get('budget')
+        level = data.get('level')
+        equipment_type = data.get('type', 'すべて')
+        
+        # パラメータの検証
+        if not all([guitarist, budget, level]):
+            return jsonify({
+                'error': '必要なパラメータが不足しています。guitarist, budget, levelは必須です。'
+            }), 400
+        
+        # 機材データの取得
+        documents = get_equipment_data(guitarist)
+        if not documents:
+            return jsonify({
+                'error': f'{guitarist}の機材データが見つかりませんでした。'
+            }), 404
+        
+        # RAGチェーンの作成と実行
+        chain = create_rag_chain(documents, guitarist)
+        input_data = {
+            "budget": budget,
+            "level": level,
+            "type": equipment_type
+        }
+        
+        # 非同期でレコメンドを実行
+        response = await chain(input_data)
+        
+        return jsonify({
+            'recommendation': response
+        })
+        
+    except Exception as e:
+        print(f"エラーが発生しました: {e}")
+        return jsonify({
+            'error': f'サーバーエラーが発生しました: {str(e)}'
+        }), 500
 
 def main():
     # --- タブの設定 ---
@@ -167,4 +216,4 @@ def run_practice_mode():
         st.info("このギタリストの練習フレーズはまだ登録されていません。")
 
 if __name__ == "__main__":
-    main()
+    app.run(debug=True)

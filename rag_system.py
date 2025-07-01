@@ -14,6 +14,10 @@ from langchain_core.documents import Document
 # 設定情報をconfig.pyからインポート
 from config import GOOGLE_API_KEY, EMBEDDING_MODEL, CHAT_MODEL, SAFETY_SETTINGS
 
+def format_docs(docs):
+    """ドキュメントをフォーマットする補助関数"""
+    return "\n\n".join(doc.page_content for doc in docs)
+
 def create_rag_prompt(guitarist: str) -> ChatPromptTemplate:
     """ギタリストに応じたRAGプロンプトを生成する"""
     system_prompt = f"""あなたは{guitarist}のサウンドを熟知したギター機材の専門家です。
@@ -92,15 +96,28 @@ def create_rag_chain(documents: list[Document], guitarist: str):
     # 6. プロンプトの作成
     prompt = ChatPromptTemplate.from_template(template)
 
-    # 7. RAGチェーンの作成
-    chain = (
-        {"context": retriever, 
-         "guitarist": lambda x: guitarist,
-         "budget": lambda x: int(str(x["budget"]).replace(",", "")),  # 数値に変換
-         "level": lambda x: x["level"],
-         "type": lambda x: x["type"]}
-        | prompt
-        | llm
-    )
+    # 7. ドキュメント結合チェーンの作成
+    document_chain = create_stuff_documents_chain(llm, prompt)
 
-    return chain
+    # 8. 検索チェーンの作成
+    retrieval_chain = create_retrieval_chain(retriever, document_chain)
+
+    async def run_chain(input_data):
+        """チェーンを実行する非同期関数"""
+        try:
+            # 入力データの準備
+            chain_input = {
+                "guitarist": guitarist,
+                "budget": int(str(input_data["budget"]).replace(",", "")),
+                "level": input_data["level"],
+                "type": input_data["type"]
+            }
+            
+            # チェーンの実行
+            response = await retrieval_chain.ainvoke(chain_input)
+            return response["answer"]
+        except Exception as e:
+            print(f"チェーンの実行中にエラーが発生しました: {e}")
+            return f"エラーが発生しました: {str(e)}"
+
+    return run_chain
