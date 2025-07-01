@@ -1,3 +1,7 @@
+import sys
+import sqlite3
+print(f"Current SQLite version: {sqlite3.sqlite_version}")
+
 # app.py
 
 import streamlit as st

@@ -10,6 +10,8 @@ from langchain.chains.retrieval import create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_community.vectorstores import Chroma
 from langchain_core.documents import Document
+import chromadb
+from chromadb.config import Settings
 
 # 設定情報をconfig.pyからインポート
 from config import GOOGLE_API_KEY, EMBEDDING_MODEL, CHAT_MODEL, SAFETY_SETTINGS
@@ -32,6 +34,12 @@ def create_rag_prompt(guitarist: str) -> ChatPromptTemplate:
 
 def create_rag_chain(documents: list[Document], guitarist: str):
     """ドキュメントとギタリスト名からRAGチェーンを構築する"""
+    # ChromaDBクライアントの設定
+    client = chromadb.Client(Settings(
+        is_persistent=False,  # インメモリモードを使用
+        anonymized_telemetry=False
+    ))
+
     # 1. LLMの初期化
     llm = ChatGoogleGenerativeAI(
         model=CHAT_MODEL,
