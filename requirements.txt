@@ -144,3 +144,5 @@ soundfile
 librosa>=0.10.2
 matplotlib>=3.8.0
 numba>=0.59.0
+torch==2.7.1
+torchaudio==2.7.1
