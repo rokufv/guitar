@@ -6,101 +6,173 @@
 
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
-from langchain.chains.retrieval import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_community.vectorstores import FAISS
 from langchain_core.documents import Document
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+# BM25とEnsembleRetrieverを一時的に無効化
+# from langchain.retrievers import BM25Retriever, EnsembleRetriever 
+from langchain_core.retrievers import BaseRetriever
+from typing import List, Dict
+from langchain_core.runnables import RunnableLambda, RunnablePassthrough
+from langchain_core.output_parsers import StrOutputParser
 
 # 設定情報をconfig.pyからインポート
 from config import GOOGLE_API_KEY, EMBEDDING_MODEL, CHAT_MODEL, SAFETY_SETTINGS
+from data_loader import get_equipment_data # data_loaderを直接使用
 
-def format_docs(docs):
+def format_docs(docs: List[Document]) -> str:
     """ドキュメントをフォーマットする補助関数"""
     return "\n\n".join(doc.page_content for doc in docs)
 
-def create_rag_prompt(guitarist: str) -> ChatPromptTemplate:
-    """ギタリストに応じたRAGプロンプトを生成する"""
-    system_prompt = f"""あなたは{guitarist}のサウンドを熟知したギター機材の専門家です。
-    ユーザーの予算と機材レベル、そして希望する機材タイプに合わせて、最適な機材を提案してください。
-    提案する機材は、提供された情報（context）の中から、{guitarist}のサウンドに最も近い特徴を持つものを選び、
-    その機材がなぜ{guitarist}のサウンドに近づくのか、具体的な理由とセッティングのヒントも加えて、分かりやすく解説してください。
-    予算を少し超えるが、より効果的な選択肢があれば、それも提示してください。
-
-    機材情報は以下のような形式で提供されます：
-    機材名: [機材の名前]
-    タイプ: [機材のタイプ]
-    価格: [価格]
-    レベル: [機材の難易度]
-    特徴: [機材の特徴]
-
-    以下の情報を参考にして提案してください:
-    {{context}}
+class RAGSystem:
     """
-    
-    return ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        ("human", f"{guitarist}のサウンドに近づきたいです。\n機材レベル: {{level}}\n予算: {{budget}}円\n機材タイプ: {{type}}\nどんな機材がおすすめですか？"),
-    ])
-
-def create_rag_chain(documents: list[Document], guitarist: str):
-    """ドキュメントとギタリスト名からRAGチェーンを構築する"""
-    
-    # 1. LLMの初期化
-    llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
-        google_api_key=GOOGLE_API_KEY,
-        convert_system_message_to_human=True,
-        temperature=0.7
-    )
-
-    # 2. エンベッディングモデルの初期化
-    embeddings = GoogleGenerativeAIEmbeddings(
-        model="models/embedding-001",
-        google_api_key=GOOGLE_API_KEY,
-    )
-
-    # 3. ベクトルストアの作成
-    vectorstore = FAISS.from_documents(
-        documents,
-        embeddings,
-    )
-
-    # 4. 検索の実行
-    retriever = vectorstore.as_retriever(
-        search_type="similarity",
-        search_kwargs={"k": 3}
-    )
-
-    # 5. プロンプトテンプレートの作成
-    template = """あなたは{guitarist}の機材に詳しい楽器アドバイザーです。
-    以下の条件とユーザーからの質問に基づいて、{guitarist}のサウンドに近づくための機材をレコメンドしてください。
-
-    条件：
-    - 予算: {budget}円
-    - 機材レベル: {level}
-    - 探している機材タイプ: {type}
-
-    以下の機材情報（コンテキスト）を参考にしてください：
-    {context}
-
-    ユーザーからの質問:
-    {input}
-
-    レコメンドする際は以下の点に気をつけてください：
-    1. 予算内（{budget}円以下）で購入可能な機材を優先的に提案する
-    2. ユーザーの機材レベル（{level}）に合った機材を選ぶ
-    3. 指定された機材タイプ（{type}）の中から選ぶ（「すべて」の場合は制限なし）
-    4. {guitarist}のサウンドの特徴と、それを実現するための機材の役割を説明する
-    5. 可能であれば、予算や機材レベルに応じた代替案も提案する
-
-    回答は日本語で、フレンドリーな口調でお願いします。
+    機材推薦のためのRAGシステム全体を管理するクラス。
+    重い初期化処理を一度だけ行い、キャッシュして使用されることを想定。
     """
+    def __init__(self):
+        self.version = "1.4" # デバッグ用のバージョン情報
+        print(f"RAGSystemの初期化を開始します v{self.version} ... (この処理は起動時に一度だけ実行されます)")
+        self.guitarist_options = ["B'z 松本孝弘", "布袋寅泰", "結束バンド 後藤ひとり"]
+        self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.7)
+        self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
+        self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
+        
+        self.retrievers_by_guitarist = self._initialize_all_retrievers()
+        print(f"RAGSystem v{self.version} の初期化が完了しました。")
 
-    # 6. プロンプトの作成
-    prompt = ChatPromptTemplate.from_template(template)
+    def _create_retriever(self, documents: List[Document]) -> BaseRetriever:
+        """【デバッグ用】FAISS Retrieverのみを構築する"""
+        if not documents:
+            class EmptyRetriever(BaseRetriever):
+                def _get_relevant_documents(self, query: str, *, run_manager=None) -> List[Document]: return []
+            return EmptyRetriever()
+
+        # FAISSによるセマンティック検索のみを行う
+        return FAISS.from_documents(documents, self.embeddings).as_retriever(search_kwargs={"k": 5})
+
+    def _initialize_all_retrievers(self) -> Dict[str, Dict[str, BaseRetriever]]:
+        """
+        全ギタリストのデータを読み込み、カテゴリ別にリトリーバーを構築する。
+        """
+        all_retrievers = {}
+        for guitarist in self.guitarist_options:
+            documents = get_equipment_data(guitarist)
+
+            # --- データ検証ステップを追加 ---
+            for i, doc in enumerate(documents):
+                if not isinstance(doc.page_content, str):
+                    error_msg = (
+                        f"データ検証エラー: ギタリスト '{guitarist}' のデータに問題があります。\n"
+                        f"ドキュメントNo.{i} の page_content が文字列ではなく、{type(doc.page_content)} 型になっています。\n"
+                        f"問題のデータ内容: {doc.page_content}\n"
+                        f"data_loader.py または元のデータファイルを確認してください。"
+                    )
+                    raise TypeError(error_msg)
+            # --- データ検証ここまで ---
+            
+            chunked_documents = self.text_splitter.split_documents(documents)
+            
+            docs_by_category: Dict[str, List[Document]] = {"ギター": [], "アンプ": [], "エフェクター": []}
+            for doc in chunked_documents:
+                category = doc.metadata.get("category")
+                if category in docs_by_category:
+                    docs_by_category[category].append(doc)
+            docs_by_category["すべて"] = chunked_documents
+
+            guitarist_retrievers = {
+                # デバッグ用に単純化されたRetriever作成関数を呼ぶ
+                category: self._create_retriever(docs)
+                for category, docs in docs_by_category.items()
+            }
+            all_retrievers[guitarist] = guitarist_retrievers
+            print(f"  - {guitarist} のリトリーバーを構築しました。")
+        return all_retrievers
+
+    def create_rag_chain(self, guitarist: str):
+        """
+        【最終デバッグ】データ検索部をバイパスし、問題箇所を特定する。
+        """
+        # 見やすく、端的な出力を指示するプロンプト
+        template = """あなたは、ユーザーが目指すギタリストのサウンドに近づくための機材を推薦する、プロの楽器アドバイザーです。
+        以下の情報に基づき、回答は非常に明瞭で、見やすく、そして端的にまとめてください。
+
+        ---
+        ### ユーザー情報
+        - **目標のギタリスト:** {guitarist}
+        - **探している機材:** {type}
+        - **予算:** {budget}円
+
+        ### 参考機材データ (コンテキスト)
+        【デバッグモード】現在、データベース検索はバイパスされています。
+        {context}
+        ---
+
+        ### 回答の構成案
+        1.  **タイトル:** 「{guitarist}風サウンドへの推薦機材」のような、一目で内容がわかるタイトルを付けてください。
+        2.  **推薦機材リスト:**
+            - コンテキストから、ユーザーの予算と希望に最も合う機材を**最大3つまで**選び、以下の形式で箇条書きにしてください。
+            - **【機材名】** (カテゴリ)
+              - **価格相場:** (価格)
+              - **ポイント:** (なぜその機材が推薦できるのか、サウンドの特徴などを**1〜2行で要約**)
+        3.  **総括アドバイス:**
+            - なぜこれらの機材を選んだのか、そして予算内でどのように組み合わせると効果的かなどを、**3〜4行程度の短い文章で**アドバイスしてください。
+
+        以上の構成案に従って、プロフェッショナルかつ親切な口調で回答を生成してください。
+        """
+        prompt = ChatPromptTemplate.from_template(template)
+
+        # LLMに応答を生成させる部分のチェーン
+        llm_chain = prompt | self.llm | StrOutputParser()
+
+        def run_llm_chain_only(input_dict: dict) -> dict:
+            """
+            データ検索を完全にバイパスし、LLMチェーンのみを実行する。
+            """
+            # LLMチェーンへの入力を準備
+            llm_input = {
+                "guitarist": guitarist,
+                "budget": input_dict.get("budget", "指定なし"),
+                "type": input_dict.get("type", "指定なし"),
+                "input": input_dict.get("input", ""),
+                "context": "これは固定のコンテキスト情報です。データベースからの検索は行われていません。"
+            }
+            # LLMチェーンを実行して回答文字列を取得
+            answer_str = llm_chain.invoke(llm_input)
+            
+            # app.pyが期待する形式で辞書を返す
+            return {"answer": answer_str, "context": llm_input["context"]}
+
+        # 複雑なチェーンの代わりに、単純なPython関数をRunnableとして返す
+        return RunnableLambda(run_llm_chain_only)
+
+async def get_practice_advice(score: float, guitarist: str) -> str:
+    """
+    演奏のスコアとギタリスト名に基づき、ギター講師としてのアドバイスを生成する。
+    """
+    if score >= 95: rank, feedback = "S (素晴らしい！)", "ほぼ完璧な演奏です！プロレベルの精度に達しています。"
+    elif score >= 80: rank, feedback = "A (上手い！)", "非常に上手な演奏です。細かいニュアンスまで再現できています。"
+    elif score >= 60: rank, feedback = "B (良い感じ！)", "良い演奏です！あと少しでさらに良くなります。"
+    elif score >= 40: rank, feedback = "C (もう一息！)", "惜しい！フレーズの要点は掴めています。"
+    else: rank, feedback = "D (要練習)", "基本からもう一度確認してみましょう。"
+
+    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.8)
     
-    # 7. RAGチェーンの作成
-    question_answer_chain = create_stuff_documents_chain(llm, prompt)
-    chain = create_retrieval_chain(retriever, question_answer_chain)
-
-    return chain
+    prompt_template = f"""あなたは、{guitarist}のプレイスタイルとサウンドを熟知した、経験豊富なプロのギター講師です。
+    生徒の演奏を採点し、具体的な改善点を非常に分かりやすく、そしてモチベーションが上がるようにアドバイスします。
+    今回は、生徒が{guitarist}のフレーズに挑戦した結果、以下の評価が出ました。
+    ---
+    採点結果: {score:.1f}点 / 100点, 評価ランク: {rank}, 講師からの一言: {feedback}
+    ---
+    この評価結果を踏まえて、生徒が{guitarist}のサウンドと演奏にさらに近づくための、具体的で実践的なアドバイスをしてください。
+    アドバイスに含めるべきポイント：
+    1. まず、生徒の演奏の良かった点を具体的に褒めて、モチベーションを高めてください。
+    2. 次に、改善すべき点を、音楽理論やテクニック（例：ピッキング、ビブラート、リズム感、音の強弱など）に基づいて、{guitarist}の演奏の特徴と関連付けながら、最大2つまで、分かりやすく指摘してください。
+    3. 最後に、今後の練習方法や意識すべきことを具体的に提案し、生徒を力強く励ますポジティブなメッセージで締めくくってください。
+    回答は、フレンドリーかつ尊敬の念を込めた、プロのギター講師らしい口調でお願いします。
+    """
+    try:
+        response = await llm.ainvoke(prompt_template)
+        return response.content if isinstance(response.content, str) else str(response.content)
+    except Exception as e:
+        print(f"Error getting practice advice: {e}")
+        return "アドバイスの生成中にエラーが発生しました。しばらくしてからもう一度お試しください。"

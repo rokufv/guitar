@@ -3,67 +3,88 @@
 from config import GOOGLE_API_KEY
 from equipment_data import EQUIPMENT_DATA
 from langchain_core.documents import Document
+import os
+import re
+import json # JSONを扱うためにインポート
 
 # 練習フレーズのデータ
 PRACTICE_PHRASES = {
     "B'z 松本孝弘": {
-        "title": "GO FURTHER",
-        "youtube_url": "https://www.youtube.com/watch?v=5VdJ-1d_4DQ",
-        "tab_url": "https://www.ultimate-guitar.com/search.php?search_type=title&value=go%20further%20tak%20matsumoto"
-    },
-    "布袋寅泰": {
-        "title": "BATTLE WITHOUT HONOR OR HUMANITY",
-        "youtube_url": "https://www.youtube.com/watch?v=oFvgeA1S1tQ",
-        "tab_url": "https://www.ultimate-guitar.com/search.php?search_type=title&value=BATTLE%20WITHOUT%20HONOR%20OR%20HUMANITY"
-    },
-    "結束バンド 後藤ひとり": {
-        "title": "ギターと孤独と蒼い惑星",
-        "youtube_url": "https://www.youtube.com/watch?v=B53s_pC_L9M",
-        "tab_url": "https://www.ultimate-guitar.com/search.php?search_type=title&value=%E3%82%AE%E3%82%BF%E3%83%BC%E3%81%A8%E5%AD%A4%E7%8B%AC%E3%81%A8%E8%92%BC%E3%81%84%E6%83%91%E6%98%9F"
+        "title": "ultra soul",
+        "youtube_url": "https://www.youtube.com/watch?v=P53EuU4-p8Y&list=RDP53EuU4-p8Y&start_radio=1",
     }
 }
 
-def get_equipment_data(guitarist_name: str) -> list[Document]:
-    """指定されたギタリストの機材データを取得する"""
-    # ギタリスト名のマッピング
-    name_map = {
-        "B'z 松本孝弘": "TAK",
-        "布袋寅泰": "HOTEI",
-        "結束バンド 後藤ひとり": "GOTOH"
-    }
-    data_key = name_map.get(guitarist_name, guitarist_name)
-    equipment_list = EQUIPMENT_DATA.get(data_key, [])
-    
-    # 機材データをDocumentオブジェクトに変換
+# --- グローバル変数 ---
+DATA_DIR = os.path.dirname(os.path.abspath(__file__))
+EQUIPMENT_FILES = {
+    "B'z 松本孝弘": os.path.join(DATA_DIR, "tak_gear.doc"),
+    "布袋寅泰": os.path.join(DATA_DIR, "hotei_gear.doc"),
+    "結束バンド 後藤ひとり": os.path.join(DATA_DIR, "gotoh_gear.doc"),
+}
+PRACTICE_PHRASES_FILE = os.path.join(DATA_DIR, "practice_phrases.json")
+
+
+def get_equipment_data(guitarist: str) -> list[Document]:
+    """
+    指定されたギタリストの機材データをファイルから読み込み、
+    Documentオブジェクトのリストとして返す。
+    全ての機材データは同じテキスト形式として処理する。
+    """
+    file_path = EQUIPMENT_FILES.get(guitarist)
+    if not file_path or not os.path.exists(file_path):
+        return []
+
     documents = []
-    for equipment in equipment_list:
-        try:
-            # 価格を日本円表記に変換
-            price = equipment.get('price', 0)
-            price_str = f"¥{price:,}" if isinstance(price, (int, float)) and price > 0 else "非売品"
-            
-            # コンテンツの作成
-            content = (
-                f"機材名: {equipment.get('name', '')}\n"
-                f"タイプ: {equipment.get('type', '')}\n"
-                f"価格: {price_str}\n"
-                f"レベル: {equipment.get('level', '')}\n"
-                f"特徴: {equipment.get('characteristics', '')}"
-            )
-            
-            # メタデータの作成
-            metadata = equipment.copy()
-            metadata['guitarist'] = guitarist_name
-            
-            # Documentオブジェクトを作成
-            doc = Document(page_content=content, metadata=metadata)
-            documents.append(doc)
-        except Exception as e:
-            print(f"機材データの変換中にエラーが発生しました: {e}")
+
+    # 全てのファイルを同じロジックで処理
+    with open(file_path, "r", encoding="utf-8") as f:
+        content_full = f.read()
+
+    # 各機材のブロックに分割
+    equipment_blocks = re.split(r'\n---\n', content_full.strip())
+
+    for block in equipment_blocks:
+        if not block.strip():
             continue
-    
+
+        lines = block.strip().split('\n')
+        equipment = {}
+        for line in lines:
+            if ":" in line:
+                key, value = line.split(':', 1)
+                key_map = {
+                    '機材名': 'name',
+                    'タイプ': 'category', # 'type' ではなく 'category' に統一
+                    '価格': 'price',
+                    '特徴': 'characteristics'
+                }
+                internal_key = key_map.get(key.strip())
+                if internal_key:
+                    equipment[internal_key] = value.strip()
+        
+        # 価格情報を取得
+        price_str = equipment.get('price', 'N/A')
+        
+        # メタデータを生成
+        metadata = {
+            "name": equipment.get('name', 'N/A'),
+            "category": equipment.get('category', 'N/A'), # 'type' ではなく 'category' を参照
+            "price": price_str,
+            "characteristics": equipment.get('characteristics', 'N/A')
+        }
+        
+        # Document のコンテンツを生成
+        content = (
+            f"機材名: {metadata.get('name', '')}\n"
+            f"カテゴリ: {metadata.get('category', '')}\n"
+            f"価格: {metadata.get('price', '')}\n"
+            f"概要: {metadata.get('characteristics', '')}"
+        )
+        documents.append(Document(page_content=content, metadata=metadata))
+            
     return documents
 
-def get_practice_phrase(guitarist_name: str) -> dict:
+def get_practice_phrase(guitarist: str) -> dict:
     """指定されたギタリストの練習フレーズデータを取得する"""
-    return PRACTICE_PHRASES.get(guitarist_name, {})
+    return PRACTICE_PHRASES.get(guitarist, {})

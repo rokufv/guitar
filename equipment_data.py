@@ -126,7 +126,7 @@ EQUIPMENT_DATA = {
             "characteristics": "ぼっちちゃんが愛用するオーバードライブ。ピッキングのニュアンスを出しやすい。",
             "image_url": "https://images-na.ssl-images-amazon.com/images/I/71c-4bX-HFL._AC_SL1500_.jpg"
         },
-        {
+         {
             "name": "結束バンド オリジナルピック",
             "type": "ピック",
             "price": "150円",
