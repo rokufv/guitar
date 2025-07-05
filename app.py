@@ -14,7 +14,7 @@ from langchain_core.documents import Document
 from pitch_analyzer import analyze_pitch_and_create_graph, compare_pitches_and_create_graph
 
 # --- グローバルなリソースのキャッシュ ---
-# @st.cache_resource # ★デバッグのため一時的にキャッシュを無効化
+@st.cache_resource  # ★キャッシュを有効化してパフォーマンス改善
 def load_rag_system():
     """
     RAGSystemのインスタンスをロードし、Streamlitのセッション間でキャッシュする。
@@ -34,6 +34,10 @@ def main():
         st.session_state.reference_audio_path = None
     if 'reference_pitch_graph' not in st.session_state:
         st.session_state.reference_pitch_graph = None
+    
+    # RAGシステムの初期化状態を管理
+    if 'rag_system_loaded' not in st.session_state:
+        st.session_state.rag_system_loaded = False
 
     # --- タブの設定 ---
     tab1, tab2 = st.tabs(["🎸 機材レコメンド", "🎤 フレーズ練習"])
@@ -53,9 +57,15 @@ def run_recommendation_mode():
         st.error("環境変数 'GOOGLE_API_KEY' が設定されていません。'.env' ファイルを確認するか、環境変数に設定してください。")
         st.stop()
 
-    # キャッシュされたRAGシステムをロード
+    # キャッシュされたRAGシステムをロード（初回のみ初期化メッセージを表示）
     try:
-        rag_system = load_rag_system()
+        if not st.session_state.rag_system_loaded:
+            with st.spinner("RAGシステムを初期化中...（初回のみ）"):
+                rag_system = load_rag_system()
+                st.session_state.rag_system_loaded = True
+                # st.success("RAGシステムの初期化が完了しました！")
+        else:
+            rag_system = load_rag_system()  # キャッシュから高速取得
     except Exception as e:
         st.error(f"RAGシステムの初期化中にエラーが発生しました: {e}")
         st.info("Google APIキーが正しいか、またはネットワーク接続に問題がないか確認してください。")
@@ -78,6 +88,14 @@ def run_recommendation_mode():
         )
         st.markdown("---")
         
+        st.markdown("#### 推薦システム選択")
+        use_agent = st.checkbox(
+            "🤖 AIエージェント推薦を使用",
+            value=True,
+            help="より詳細な分析と段階的な推薦を行います（推薦品質向上・処理時間増加）"
+        )
+        st.markdown("---")
+        
         st.markdown("#### ご予算（円）")
         budget_input = st.number_input(
             "ご希望の予算を半角数字で入力してください。",
@@ -94,16 +112,23 @@ def run_recommendation_mode():
         if budget_input <= 0:
             st.error("有効な予算を入力してください。")
         else:
-            run_recommendation(rag_system, selected_guitarist, budget_input, selected_type)
+            run_recommendation(rag_system, selected_guitarist, budget_input, selected_type, use_agent)
 
     st.markdown("---")
     st.markdown("※ このアプリはプロトタイプであり、提供される情報はダミーデータとAIの推論に基づいています。")
 
-def run_recommendation(rag_system: RAGSystem, guitarist: str, budget: int, equipment_type: str):
+def run_recommendation(rag_system: RAGSystem, guitarist: str, budget: int, equipment_type: str, use_agent: bool = False):
     """機材レコメンドを実行し、結果を表示する"""
-    with st.spinner(f"{guitarist}のサウンドに近づく機材を探索中です..."):
+    
+    # エージェントシステムの場合は異なるスピナーメッセージを表示
+    if use_agent:
+        spinner_message = f"🤖 AIエージェントが{guitarist}のサウンドを詳細分析中です...\n（段階的な推薦プロセスを実行中）"
+    else:
+        spinner_message = f"{guitarist}のサウンドに近づく機材を探索中です..."
+    
+    with st.spinner(spinner_message):
         try:
-            rag_chain = rag_system.create_rag_chain(guitarist)
+            rag_chain = rag_system.create_rag_chain(guitarist, use_agent=use_agent)
             
             st.markdown("### レコメンド結果")
             
@@ -114,6 +139,16 @@ def run_recommendation(rag_system: RAGSystem, guitarist: str, budget: int, equip
             }
             
             response_data = rag_chain.invoke(input_data)
+
+            # 推薦方法を表示
+            if isinstance(response_data, dict) and 'method' in response_data:
+                method = response_data['method']
+                if method == "agent_based":
+                    st.info("🤖 AIエージェントによる高精度推薦結果")
+                elif method == "simple":
+                    st.info("⚡ 高速推薦結果")
+                elif method == "error_fallback":
+                    st.warning("⚠️ エラー発生のため標準推薦にフォールバック")
 
             st.markdown("#### AIからのアドバイス")
 
@@ -156,22 +191,28 @@ def run_practice_mode():
         st.info("下の動画や分離された音源を再生して練習しましょう！\n\n**⚠️ 音が重ならないように、不要な音源はミュートしてください。**")
         
         # --- パート別音源のパス設定 ---
-        # この処理は一度だけ行い、結果をセッションステートに保存する
-        if not st.session_state.reference_audio_path:
-            download_dir = "downloaded_audio"
-            original_audio_path = None
-            if os.path.exists(download_dir):
-                for file in sorted(os.listdir(download_dir)):
-                    if file.lower().endswith(".wav"):
-                        original_audio_path = os.path.join(download_dir, file)
-                        break
-            
-            if original_audio_path:
-                original_filename_base = os.path.splitext(os.path.basename(original_audio_path))[0]
-                base_path = os.path.join('separated_audio', 'htdemucs', original_filename_base)
-                part_path = os.path.join(base_path, 'other.wav')
-                if os.path.exists(part_path):
-                    st.session_state.reference_audio_path = part_path
+        # 選択されたギタリストに応じて適切な音源を選択
+        download_dir = "downloaded_audio"
+        reference_audio_path = None
+        
+        # ギタリスト別の音源検索パターン
+        guitarist_search_patterns = {
+            "B'z 松本孝弘": "*ultra*",
+            "布袋寅泰": "*スリル*",
+            "結束バンド 後藤ひとり": "*忘れてやらない*"
+        }
+        
+        # 選択されたギタリストの音源を動的に探す
+        search_pattern = guitarist_search_patterns.get(selected_guitarist)
+        if search_pattern:
+            import glob
+            pattern = os.path.join('separated_audio', 'htdemucs', search_pattern, 'other.wav')
+            matching_files = glob.glob(pattern)
+            if matching_files:
+                reference_audio_path = matching_files[0]
+        
+        # セッションステートに保存（ギタリスト変更時に更新されるよう）
+        st.session_state.reference_audio_path = reference_audio_path
 
         # --- 練習セッションのレイアウト ---
         st.subheader("▶️ お手本動画")
@@ -193,7 +234,28 @@ def run_practice_mode():
                 st.warning("お手本ギター音源が見つかりません。")
             
             # 最後に録音ウィジェット
-            audio_bytes = st_audiorec()
+            st.markdown("#### 🎤 あなたの演奏を録音してください")
+            st.info("**💡 クリアな録音のための手順:**\n1. **推奨方法**: お手本音源を聞いて覚える → 音源を停止 → 録音開始\n2. **同時録音する場合**: 有線ヘッドホン必須 + 音源音量を最小に\n3. **最高品質**: オーディオインターフェース使用")
+            st.warning("⚠️ **重要**: お手本音源と同時録音すると、ブラウザのエコーキャンセレーション機能により音質が劣化する場合があります。最もクリアな録音には、音源を停止してから録音することをお勧めします。")
+            
+            # 録音方法の選択
+            recording_method = st.radio(
+                "録音方法を選択してください：",
+                ("🎤 ブラウザで直接録音", "📁 録音ファイルをアップロード"),
+                help="音質に問題がある場合は、外部アプリで録音してアップロードをお試しください"
+            )
+            
+            audio_bytes = None
+            if recording_method == "🎤 ブラウザで直接録音":
+                audio_bytes = st_audiorec()
+            else:
+                uploaded_file = st.file_uploader(
+                    "録音ファイルをアップロードしてください",
+                    type=['wav', 'mp3', 'ogg', 'm4a'],
+                    help="Audacity、GarageBand、スマホの録音アプリなどで録音したファイルをアップロードできます"
+                )
+                if uploaded_file is not None:
+                    audio_bytes = uploaded_file.read()
             
             if audio_bytes:
                 st.audio(audio_bytes, format='audio/wav')

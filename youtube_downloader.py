@@ -35,8 +35,14 @@ def download_audio_from_youtube(url, output_path='.', file_format='wav'):
         print(f"エラーが発生しました: {e}")
 
 if __name__ == '__main__':
-    # ユーザーから提供されたURL
-    youtube_url = "https://www.youtube.com/watch?v=P53EuU4-p8Y"
+    import sys
+    
+    # コマンドライン引数からURLを取得
+    if len(sys.argv) > 1:
+        youtube_url = sys.argv[1]
+    else:
+        # デフォルトURL（松本孝弘の例）
+        youtube_url = "https://www.youtube.com/watch?v=P53EuU4-p8Y"
     
     # 保存先ディレクトリ
     download_dir = "downloaded_audio"

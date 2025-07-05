@@ -20,6 +20,9 @@ from langchain_core.output_parsers import StrOutputParser
 from config import GOOGLE_API_KEY, EMBEDDING_MODEL, CHAT_MODEL, SAFETY_SETTINGS
 from data_loader import get_equipment_data # data_loaderを直接使用
 
+# RAG x Agentsシステムをインポート
+from agent_system import GuitarEquipmentAgent
+
 def format_docs(docs: List[Document]) -> str:
     """ドキュメントをフォーマットする補助関数"""
     return "\n\n".join(doc.page_content for doc in docs)
@@ -28,17 +31,26 @@ class RAGSystem:
     """
     機材推薦のためのRAGシステム全体を管理するクラス。
     重い初期化処理を一度だけ行い、キャッシュして使用されることを想定。
+    v2.0: RAG x Agentsシステムを統合
     """
     def __init__(self):
-        self.version = "1.4" # デバッグ用のバージョン情報
-        print(f"RAGSystemの初期化を開始します v{self.version} ... (この処理は起動時に一度だけ実行されます)")
+        self.version = "2.0"  # RAG x Agentsシステム統合版
+        # print(f"RAGSystemの初期化を開始します v{self.version} ... (この処理は起動時に一度だけ実行されます)")
         self.guitarist_options = ["B'z 松本孝弘", "布袋寅泰", "結束バンド 後藤ひとり"]
-        self.llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.7)
+        self.llm = ChatGoogleGenerativeAI(
+            model="gemini-1.5-flash", 
+            temperature=0.5,
+            max_tokens=300,  # 応答長を制限して高速化
+            timeout=10  # タイムアウトを短縮
+        )
         self.embeddings = GoogleGenerativeAIEmbeddings(model="models/embedding-001")
         self.text_splitter = RecursiveCharacterTextSplitter(chunk_size=500, chunk_overlap=50)
         
         self.retrievers_by_guitarist = self._initialize_all_retrievers()
-        print(f"RAGSystem v{self.version} の初期化が完了しました。")
+        
+        # RAG x Agentsシステムを初期化
+        self.agent_system = GuitarEquipmentAgent()
+        # print(f"RAGSystem v{self.version} の初期化が完了しました。")
 
     def _create_retriever(self, documents: List[Document]) -> BaseRetriever:
         """【デバッグ用】FAISS Retrieverのみを構築する"""
@@ -85,65 +97,85 @@ class RAGSystem:
                 for category, docs in docs_by_category.items()
             }
             all_retrievers[guitarist] = guitarist_retrievers
-            print(f"  - {guitarist} のリトリーバーを構築しました。")
+            # print(f"  - {guitarist} のリトリーバーを構築しました。")
         return all_retrievers
 
-    def create_rag_chain(self, guitarist: str):
+    def create_rag_chain(self, guitarist: str, use_agent: bool = False):
         """
-        【最終デバッグ】データ検索部をバイパスし、問題箇所を特定する。
+        機材推薦チェーンを作成する。
+        
+        Args:
+            guitarist: 対象ギタリスト名
+            use_agent: エージェントベースの推薦を使用するかどうか
         """
-        # 見やすく、端的な出力を指示するプロンプト
-        template = """あなたは、ユーザーが目指すギタリストのサウンドに近づくための機材を推薦する、プロの楽器アドバイザーです。
-        以下の情報に基づき、回答は非常に明瞭で、見やすく、そして端的にまとめてください。
-
-        ---
-        ### ユーザー情報
-        - **目標のギタリスト:** {guitarist}
-        - **探している機材:** {type}
-        - **予算:** {budget}円
-
-        ### 参考機材データ (コンテキスト)
-        【デバッグモード】現在、データベース検索はバイパスされています。
-        {context}
-        ---
-
-        ### 回答の構成案
-        1.  **タイトル:** 「{guitarist}風サウンドへの推薦機材」のような、一目で内容がわかるタイトルを付けてください。
-        2.  **推薦機材リスト:**
-            - コンテキストから、ユーザーの予算と希望に最も合う機材を**最大3つまで**選び、以下の形式で箇条書きにしてください。
-            - **【機材名】** (カテゴリ)
-              - **価格相場:** (価格)
-              - **ポイント:** (なぜその機材が推薦できるのか、サウンドの特徴などを**1〜2行で要約**)
-        3.  **総括アドバイス:**
-            - なぜこれらの機材を選んだのか、そして予算内でどのように組み合わせると効果的かなどを、**3〜4行程度の短い文章で**アドバイスしてください。
-
-        以上の構成案に従って、プロフェッショナルかつ親切な口調で回答を生成してください。
-        """
-        prompt = ChatPromptTemplate.from_template(template)
-
-        # LLMに応答を生成させる部分のチェーン
-        llm_chain = prompt | self.llm | StrOutputParser()
-
-        def run_llm_chain_only(input_dict: dict) -> dict:
-            """
-            データ検索を完全にバイパスし、LLMチェーンのみを実行する。
-            """
-            # LLMチェーンへの入力を準備
-            llm_input = {
-                "guitarist": guitarist,
-                "budget": input_dict.get("budget", "指定なし"),
-                "type": input_dict.get("type", "指定なし"),
-                "input": input_dict.get("input", ""),
-                "context": "これは固定のコンテキスト情報です。データベースからの検索は行われていません。"
-            }
-            # LLMチェーンを実行して回答文字列を取得
-            answer_str = llm_chain.invoke(llm_input)
+        if use_agent:
+            # エージェントベースの推薦を使用
+            def run_agent_recommendation(input_dict: dict) -> dict:
+                try:
+                    budget = input_dict.get("budget", 500000)
+                    equipment_type = input_dict.get("type", "すべて")
+                    user_query = input_dict.get("input", f"{guitarist}のサウンドに近づく機材を推薦してください")
+                    
+                    # エージェントシステムを使用して推薦を実行
+                    answer_str = self.agent_system.recommend_equipment(
+                        guitarist, budget, equipment_type, user_query
+                    )
+                    
+                    return {
+                        "answer": answer_str,
+                        "context": f"エージェントベースの詳細分析による推薦結果",
+                        "method": "agent_based"
+                    }
+                except Exception as e:
+                    return {
+                        "answer": f"エージェントベースの推薦中にエラーが発生しました: {str(e)}",
+                        "context": "エラーが発生したため、標準的な推薦にフォールバックしました。",
+                        "method": "error_fallback"
+                    }
             
-            # app.pyが期待する形式で辞書を返す
-            return {"answer": answer_str, "context": llm_input["context"]}
+            return RunnableLambda(run_agent_recommendation)
+        
+        else:
+            # 従来の簡潔な推薦を使用
+            template = """{guitarist}のサウンドに近づくための機材推薦をします。
 
-        # 複雑なチェーンの代わりに、単純なPython関数をRunnableとして返す
-        return RunnableLambda(run_llm_chain_only)
+**予算:** {budget}円
+**機材タイプ:** {type}
+
+## 推薦機材（上位3つ）
+1. **機材名** - 価格帯・特徴（1行）
+2. **機材名** - 価格帯・特徴（1行）  
+3. **機材名** - 価格帯・特徴（1行）
+
+## 一言アドバイス
+{guitarist}らしいサウンドを作るポイントを2行で簡潔に。
+
+簡潔に回答してください。"""
+            prompt = ChatPromptTemplate.from_template(template)
+
+            # LLMに応答を生成させる部分のチェーン
+            llm_chain = prompt | self.llm | StrOutputParser()
+
+            def run_llm_chain_only(input_dict: dict) -> dict:
+                """
+                データ検索を完全にバイパスし、LLMチェーンのみを実行する。
+                """
+                # LLMチェーンへの入力を準備
+                llm_input = {
+                    "guitarist": guitarist,
+                    "budget": input_dict.get("budget", "指定なし"),
+                    "type": input_dict.get("type", "指定なし"),
+                    "input": input_dict.get("input", ""),
+                    "context": "これは固定のコンテキスト情報です。データベースからの検索は行われていません。"
+                }
+                # LLMチェーンを実行して回答文字列を取得
+                answer_str = llm_chain.invoke(llm_input)
+                
+                # app.pyが期待する形式で辞書を返す
+                return {"answer": answer_str, "context": llm_input["context"], "method": "simple"}
+
+            # 複雑なチェーンの代わりに、単純なPython関数をRunnableとして返す
+            return RunnableLambda(run_llm_chain_only)
 
 async def get_practice_advice(score: float, guitarist: str) -> str:
     """
@@ -155,21 +187,29 @@ async def get_practice_advice(score: float, guitarist: str) -> str:
     elif score >= 40: rank, feedback = "C (もう一息！)", "惜しい！フレーズの要点は掴めています。"
     else: rank, feedback = "D (要練習)", "基本からもう一度確認してみましょう。"
 
-    llm = ChatGoogleGenerativeAI(model="gemini-2.5-flash", temperature=0.8)
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-1.5-flash", 
+        temperature=0.6,
+        max_tokens=200,  # 応答長を制限
+        timeout=8  # タイムアウトを短縮
+    )
     
-    prompt_template = f"""あなたは、{guitarist}のプレイスタイルとサウンドを熟知した、経験豊富なプロのギター講師です。
-    生徒の演奏を採点し、具体的な改善点を非常に分かりやすく、そしてモチベーションが上がるようにアドバイスします。
-    今回は、生徒が{guitarist}のフレーズに挑戦した結果、以下の評価が出ました。
-    ---
-    採点結果: {score:.1f}点 / 100点, 評価ランク: {rank}, 講師からの一言: {feedback}
-    ---
-    この評価結果を踏まえて、生徒が{guitarist}のサウンドと演奏にさらに近づくための、具体的で実践的なアドバイスをしてください。
-    アドバイスに含めるべきポイント：
-    1. まず、生徒の演奏の良かった点を具体的に褒めて、モチベーションを高めてください。
-    2. 次に、改善すべき点を、音楽理論やテクニック（例：ピッキング、ビブラート、リズム感、音の強弱など）に基づいて、{guitarist}の演奏の特徴と関連付けながら、最大2つまで、分かりやすく指摘してください。
-    3. 最後に、今後の練習方法や意識すべきことを具体的に提案し、生徒を力強く励ますポジティブなメッセージで締めくくってください。
-    回答は、フレンドリーかつ尊敬の念を込めた、プロのギター講師らしい口調でお願いします。
-    """
+    prompt_template = f"""ギター講師として{guitarist}風演奏のアドバイスをします。
+
+**演奏結果:** {score:.1f}点 ({rank})
+{feedback}
+
+## 良かった点
+（1行で具体的に褒める）
+
+## 改善ポイント  
+1. （技術的改善点を1行で）
+2. （練習方法を1行で）
+
+## 次回への励まし
+（{guitarist}らしい演奏に近づくための前向きなメッセージを2行で）
+
+簡潔にお願いします。"""
     try:
         response = await llm.ainvoke(prompt_template)
         return response.content if isinstance(response.content, str) else str(response.content)

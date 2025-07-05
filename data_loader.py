@@ -1,7 +1,6 @@
 # data_loader.py
 
 from config import GOOGLE_API_KEY
-from equipment_data import EQUIPMENT_DATA
 from langchain_core.documents import Document
 import os
 import re
@@ -12,6 +11,14 @@ PRACTICE_PHRASES = {
     "B'z 松本孝弘": {
         "title": "ultra soul",
         "youtube_url": "https://www.youtube.com/watch?v=P53EuU4-p8Y&list=RDP53EuU4-p8Y&start_radio=1",
+    },
+    "布袋寅泰": {
+        "title": "スリル",
+        "youtube_url": "https://www.youtube.com/watch?v=iGDNw605DsU&list=RDiGDNw605DsU&start_radio=1",
+    },
+    "結束バンド 後藤ひとり": {
+        "title": "忘れてやらない",
+        "youtube_url": "https://www.youtube.com/watch?v=NDjzwtJWJy0&list=RDNDjzwtJWJy0&start_radio=1",
     }
 }
 

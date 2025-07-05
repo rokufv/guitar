@@ -15,8 +15,9 @@ def separate_audio(input_file_path, output_path='separated_audio'):
     # demucsコマンドを組み立てる
     # --out: 出力ディレクトリ指定
     # 4ステム(vocals, drums, bass, other)に分離する
+    # 仮想環境のPythonを使用
     command = [
-        'python', '-m', 'demucs',
+        'env/bin/python', '-m', 'demucs',
         '--out', output_path,
         input_file_path
     ]
