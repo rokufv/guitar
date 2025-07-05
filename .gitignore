@@ -27,8 +27,9 @@ share/python-wheels/
 MANIFEST
 
 # PyInstaller
-#  Usually these files are written by a script, but you might want to edit
-#  the *.spec file manually.
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
 *.spec
 
 # Installer logs
@@ -46,8 +47,10 @@ nosetests.xml
 coverage.xml
 *.cover
 *.py,cover
+*.py.cover
 .hypothesis/
 .pytest_cache/
+cover/
 
 # Translations
 *.mo
@@ -70,6 +73,7 @@ instance/
 docs/_build/
 
 # PyBuilder
+.pybuilder/
 target/
 
 # Jupyter Notebook
@@ -80,16 +84,48 @@ profile_default/
 ipython_config.py
 
 # pyenv
-#   For a library or package, you might want to include the .python-version file.
-#   For a project that uses pyenv, it is useful to exclude .python-version.
-.python-version
+#   For a library or package, you might want to ignore these files since the code is
+#   intended to run in multiple environments; otherwise, check them in:
+# .python-version
 
 # pipenv
-#   According to Snyk, it is best to commit Pipfile.lock.
-#   https://snyk.io/blog/pipfile-lock-considered-harmful/
-Pipfile.lock
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if having platform-specific dependencies or dependencies
+#   having no cross-platform support, pipenv may install dependencies that don't work, or not
+#   install all needed dependencies.
+#Pipfile.lock
 
-# PEP 582; recommend avoiding.
+# UV
+#   Similar to Pipfile.lock, it is generally recommended to include uv.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#uv.lock
+
+# poetry
+#   Similar to Pipfile.lock, it is generally recommended to include poetry.lock in version control.
+#   This is especially recommended for binary packages to ensure reproducibility, and is more
+#   commonly ignored for libraries.
+#   https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
+#poetry.lock
+#poetry.toml
+
+# pdm
+#   Similar to Pipfile.lock, it is generally recommended to include pdm.lock in version control.
+#   pdm recommends including project-wide configuration in pdm.toml, but excluding .pdm-python.
+#   https://pdm-project.org/en/latest/usage/project/#working-with-version-control
+#pdm.lock
+#pdm.toml
+.pdm-python
+.pdm-build/
+
+# pixi
+#   Similar to Pipfile.lock, it is generally recommended to include pixi.lock in version control.
+#pixi.lock
+#   Pixi creates a virtual environment in the .pixi directory, just like venv module creates one
+#   in the .venv directory. It is recommended not to include this directory in version control.
+.pixi
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
 __pypackages__/
 
 # Celery stuff
@@ -101,6 +137,7 @@ celerybeat.pid
 
 # Environments
 .env
+.envrc
 .venv
 env/
 venv/
@@ -130,4 +167,56 @@ dmypy.json
 .pytype/
 
 # Cython debug symbols
-cython_debug/ 
+cython_debug/
+
+# PyCharm
+#  JetBrains specific template is maintained in a separate JetBrains.gitignore that can
+#  be added to the global gitignore or merged into this project gitignore.  For a PyCharm
+#  project, it is recommended to edit the template via:
+#  File > Settings > Editor > File and Code Templates > Python > Python Class
+#  https://www.jetbrains.com/help/pycharm/
+.idea/
+
+# Audio files
+*.wav
+*.mp3
+*.flac
+*.aac
+*.ogg
+*.m4a
+
+# Model files
+*.h5
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.onnx
+
+# Data files
+*.csv
+*.json
+*.xlsx
+*.parquet
+
+# Environment files
+.env.*
+config.json
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
